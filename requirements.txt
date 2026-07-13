@@ -1,3 +1,4 @@
 python-telegram-bot==21.10
 qrcode
 Pillow
+psycopg2-binary
