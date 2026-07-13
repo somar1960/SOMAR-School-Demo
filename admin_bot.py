@@ -5,6 +5,8 @@ from telegram.ext import (
     ContextTypes
 )
 
+import asyncio
+
 from config import ADMIN_BOT_TOKEN, ADMIN_IDS
 
 
@@ -37,7 +39,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-def main():
+async def run_bot():
 
     app = Application.builder().token(
         ADMIN_BOT_TOKEN
@@ -47,10 +49,14 @@ def main():
         CommandHandler("start", start)
     )
 
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+
     print("Admin Bot Started...")
 
-    app.run_polling()
+    await asyncio.Event().wait()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(run_bot())
