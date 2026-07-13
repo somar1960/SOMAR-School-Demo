@@ -30,7 +30,6 @@ def create_table():
     conn.close()
 
 
-
 def add_student(telegram_id, full_name, photo):
 
     conn = connect()
@@ -40,45 +39,26 @@ def add_student(telegram_id, full_name, photo):
         INSERT INTO students
         (telegram_id, full_name, photo, status)
 
-        VALUES (%s,%s,%s,%s)
+        VALUES (%s,%s,%s,'pending')
 
         ON CONFLICT (telegram_id)
         DO UPDATE SET
         full_name=EXCLUDED.full_name,
-        photo=EXCLUDED.photo
+        photo=EXCLUDED.photo,
+        status='pending'
     """,
     (
         telegram_id,
         full_name,
-        photo,
-        "pending"
+        photo
     ))
 
     conn.commit()
-
     cur.close()
     conn.close()
 
 
 
-def get_pending_students():
-
-    conn = connect()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT *
-        FROM students
-        WHERE status='pending'
-    """)
-
-    data = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return data
-    
 def get_pending_students():
 
     conn = connect()
@@ -96,9 +76,74 @@ def get_pending_students():
         ORDER BY id
     """)
 
-    students = cur.fetchall()
+    data = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    return students
+    return data
+
+
+
+def approve_student(student_id, student_number):
+
+    conn = connect()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE students
+        SET status='approved',
+            student_number=%s
+        WHERE id=%s
+    """,
+    (
+        student_number,
+        student_id
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+
+def reject_student(student_id):
+
+    conn = connect()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE students
+        SET status='rejected'
+        WHERE id=%s
+    """,
+    (student_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+
+def get_student(student_id):
+
+    conn = connect()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT id,
+               telegram_id,
+               full_name,
+               photo,
+               student_number
+        FROM students
+        WHERE id=%s
+    """,
+    (student_id,))
+
+    student = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return student
