@@ -78,3 +78,27 @@ def get_pending_students():
     conn.close()
 
     return data
+    
+def get_pending_students():
+
+    conn = connect()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT id,
+               telegram_id,
+               full_name,
+               photo,
+               student_number,
+               status
+        FROM students
+        WHERE status='pending'
+        ORDER BY id
+    """)
+
+    students = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return students
