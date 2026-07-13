@@ -70,9 +70,11 @@ async def registrations(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
     if not students:
-        await update.message.reply_text(
-            "✅ لا توجد طلبات تسجيل جديدة."
-        )
+       await query.edit_message_text(
+    text=
+    "✅ تم قبول الطالب\n\n"
+    f"🆔 رقم الطالب: {student_number}"
+)
         return
 
 
@@ -160,11 +162,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         student = get_student(student_id)
 
 
-        await query.edit_message_caption(
-            caption=
-            "✅ تم قبول الطالب\n\n"
-            f"🆔 رقم الطالب: {student_number}"
-        )
+        await query.edit_message_text(
+    text=
+    "✅ تم قبول الطالب\n\n"
+    f"🆔 رقم الطالب: {student_number}"
+)
 
 
         try:
@@ -200,10 +202,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         student = get_student(student_id)
 
 
-        await query.edit_message_caption(
-            caption=
-            "❌ تم رفض طلب التسجيل."
-        )
+        await query.edit_message_text(
+    text="❌ تم رفض طلب التسجيل."
+)
 
 
         try:
