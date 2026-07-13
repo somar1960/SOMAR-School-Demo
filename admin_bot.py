@@ -69,13 +69,11 @@ async def registrations(update: Update, context: ContextTypes.DEFAULT_TYPE):
     students = get_pending_students()
 
 
-    if not students:
-       await query.edit_message_text(
-    text=
-    "✅ تم قبول الطالب\n\n"
-    f"🆔 رقم الطالب: {student_number}"
-)
-        return
+if not students:
+    await update.message.reply_text(
+        "✅ لا توجد طلبات تسجيل جديدة."
+    )
+    return
 
 
     for student in students:
