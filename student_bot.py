@@ -7,6 +7,8 @@ from telegram.ext import (
     filters
 )
 
+import asyncio
+
 from config import BOT_TOKEN
 from database import create_table
 
@@ -20,6 +22,7 @@ async def start(update: Update, context):
         "لإنشاء هويتك المدرسية:\n"
         "أرسل اسمك الثلاثي."
     )
+
     return NAME
 
 
@@ -38,63 +41,55 @@ async def get_photo(update: Update, context):
 
     file = await photo.get_file()
 
-    photo_path = f"{update.effective_user.id}.jpg"
+    photo_path = f"photos/{update.effective_user.id}.jpg"
 
     await file.download_to_drive(photo_path)
 
     name = context.user_data["name"]
 
     await update.message.reply_text(
-        f"✅ تم تسجيل بياناتك\n\n"
+        "✅ تم تسجيل بياناتك\n\n"
         f"👤 الاسم: {name}\n"
-        "⏳ سيتم إنشاء الهوية المدرسية قريباً."
+        "⏳ جاري تجهيز الهوية المدرسية..."
     )
 
     return ConversationHandler.END
 
 
-
-def main():
+async def run_bot():
 
     create_table()
 
     app = Application.builder().token(BOT_TOKEN).build()
 
-
-    conv = ConversationHandler(
+    conversation = ConversationHandler(
         entry_points=[
             CommandHandler("start", start)
         ],
 
         states={
             NAME: [
-                MessageHandler(
-                    filters.TEXT,
-                    get_name
-                )
+                MessageHandler(filters.TEXT, get_name)
             ],
 
             PHOTO: [
-                MessageHandler(
-                    filters.PHOTO,
-                    get_photo
-                )
+                MessageHandler(filters.PHOTO, get_photo)
             ]
         },
 
         fallbacks=[]
     )
 
+    app.add_handler(conversation)
 
-    app.add_handler(conv)
-
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
 
     print("Student Bot Started...")
 
-
-    app.run_polling()
-
+    await asyncio.Event().wait()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(run_bot())
