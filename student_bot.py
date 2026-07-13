@@ -10,7 +10,7 @@ from telegram.ext import (
 import asyncio
 
 from config import BOT_TOKEN
-from database import create_table
+from database import create_table, add_student
 
 
 NAME, PHOTO = range(2)
@@ -46,7 +46,11 @@ async def get_photo(update: Update, context):
     await file.download_to_drive(photo_path)
 
     name = context.user_data["name"]
-
+    add_student(
+    update.effective_user.id,
+    name,
+    photo_path
+)
     await update.message.reply_text(
         "✅ تم تسجيل بياناتك\n\n"
         f"👤 الاسم: {name}\n"
