@@ -65,16 +65,13 @@ async def registrations(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in ADMIN_IDS:
         return
 
-
     students = get_pending_students()
 
-
-if not students:
-    await update.message.reply_text(
-        "✅ لا توجد طلبات تسجيل جديدة."
-    )
-    return
-
+    if not students:
+        await update.message.reply_text(
+            "✅ لا توجد طلبات تسجيل جديدة."
+        )
+        return
 
     for student in students:
 
@@ -83,23 +80,18 @@ if not students:
         name = student[2]
         photo = student[3]
 
-
         keyboard = InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(
-                        "✅ قبول",
-                        callback_data=f"approve_{student_id}"
-                    ),
-
-                    InlineKeyboardButton(
-                        "❌ رفض",
-                        callback_data=f"reject_{student_id}"
-                    )
-                ]
-            ]
+            [[
+                InlineKeyboardButton(
+                    "✅ قبول",
+                    callback_data=f"approve_{student_id}"
+                ),
+                InlineKeyboardButton(
+                    "❌ رفض",
+                    callback_data=f"reject_{student_id}"
+                )
+            ]]
         )
-
 
         text = (
             "📄 طلب تسجيل جديد\n\n"
@@ -107,11 +99,16 @@ if not students:
             f"🆔 Telegram ID: {telegram_id}"
         )
 
-
         try:
-            await update.message.reply_photo(
-                photo=open(photo, "rb"),
-                caption=text,
+            with open(photo, "rb") as image:
+                await update.message.reply_photo(
+                    photo=image,
+                    caption=text,
+                    reply_markup=keyboard
+                )
+        except Exception:
+            await update.message.reply_text(
+                text,
                 reply_markup=keyboard
             )
 
