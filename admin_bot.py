@@ -25,6 +25,7 @@ from database import (
     get_student
 )
 
+from utils.id_card import create_student_card
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
