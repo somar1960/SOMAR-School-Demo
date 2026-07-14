@@ -132,62 +132,56 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
 
 
-    if data.startswith("approve_"):
+if data.startswith("approve_"):
 
-        student_id = int(
-            data.replace(
-                "approve_",
-                ""
-            )
+    student_id = int(
+        data.replace(
+            "approve_",
+            ""
+        )
+    )
+
+    student_number = (
+        "SOMAR-"
+        +
+        str(uuid.uuid4())[:8].upper()
+    )
+
+    student = get_student(student_id)
+
+    approve_student(
+        student_id,
+        student_number
+    )
+
+    card_path = create_student_card(
+        name=student[2],
+        student_number=student_number,
+        photo_path=student[3],
+        logo_path="logo.png"
+    )
+
+    await query.edit_message_text(
+        text=
+        "✅ تم قبول الطالب\n\n"
+        f"🆔 رقم الطالب: {student_number}"
+    )
+
+    try:
+
+        await context.bot.send_photo(
+            chat_id=student[1],
+            photo=open(card_path, "rb"),
+            caption=
+            "🎉 تم قبول طلب التسجيل.\n\n"
+            f"🆔 رقمك المدرسي:\n{student_number}"
         )
 
-
-        student_number = (
-            "SOMAR-"
-            +
-            str(uuid.uuid4())[:8].upper()
-        )
-
-
-student = get_student(student_id)
-
-approve_student(
-    student_id,
-    student_number
-)
-
-card_path = create_student_card(
-    name=student[2],
-    student_number=student_number,
-    photo_path=student[3],
-    logo_path="logo.png"
-)
-
-
-        await query.edit_message_text(
-    text=
-    "✅ تم قبول الطالب\n\n"
-    f"🆔 رقم الطالب: {student_number}"
-)
-
-
-        try:
-
-            await context.bot.send_photo(
-    chat_id=student[1],
-    photo=open(card_path, "rb"),
-    caption=
-    "🎉 تم قبول طلب التسجيل.\n\n"
-    f"🆔 رقمك المدرسي:\n{student_number}"
-)
-
-        except:
-            pass
-
-
-
-    elif data.startswith("reject_"):
-
+    except Exception as e:
+        print(e)
+        
+        elif data.startswith("reject_"):
+    
         student_id = int(
             data.replace(
                 "reject_",
