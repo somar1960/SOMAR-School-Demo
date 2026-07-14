@@ -173,13 +173,13 @@ card_path = create_student_card(
 
         try:
 
-            await context.bot.send_message(
-                chat_id=student[1],
-                text=
-                "🎉 تم قبول طلب التسجيل في SOMAR School\n\n"
-                f"🆔 رقم الطالب:\n{student_number}\n\n"
-                "سيتم إرسال الهوية المدرسية قريباً."
-            )
+            await context.bot.send_photo(
+    chat_id=student[1],
+    photo=open(card_path, "rb"),
+    caption=
+    "🎉 تم قبول طلب التسجيل.\n\n"
+    f"🆔 رقمك المدرسي:\n{student_number}"
+)
 
         except:
             pass
