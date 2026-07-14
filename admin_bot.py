@@ -180,7 +180,7 @@ if data.startswith("approve_"):
     except Exception as e:
         print(e)
         
-        elif data.startswith("reject_"):
+elif data.startswith("reject_"):
     
         student_id = int(
             data.replace(
