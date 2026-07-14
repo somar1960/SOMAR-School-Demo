@@ -1,106 +1,50 @@
-import os
 import qrcode
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
 
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
-
-
-def create_student_card(
-    name,
-    student_number,
-    photo_path,
-    logo_path
-):
-
-    os.makedirs("cards", exist_ok=True)
-    os.makedirs("qr", exist_ok=True)
-
-    qr_path = f"qr/{student_number}.png"
-
-    qr = qrcode.make(student_number)
-    qr.save(qr_path)
-
-    card = Image.new(
-        "RGB",
-        (900, 550),
-        "white"
-    )
-
+def create_student_card(name, student_number, photo_bytes, logo_bytes=None, school_name="SOMAR School"):
+    """
+    Create a student ID card and return as BytesIO object (PNG).
+    All inputs are BytesIO streams (photo, logo).
+    """
+    card = Image.new("RGB", (900, 550), "white")
     draw = ImageDraw.Draw(card)
 
+    # Load fonts (try to use a nicer font if available, else default)
     try:
-        font_big = ImageFont.truetype(
-            "arial.ttf",
-            36
-        )
-
-        font_small = ImageFont.truetype(
-            "arial.ttf",
-            24
-        )
-
+        font_big = ImageFont.truetype("arial.ttf", 36)
+        font_small = ImageFont.truetype("arial.ttf", 24)
     except:
-
         font_big = ImageFont.load_default()
         font_small = ImageFont.load_default()
 
-    if os.path.exists(logo_path):
-
-        logo = Image.open(logo_path)
-
+    # Logo (top left)
+    if logo_bytes:
+        logo = Image.open(logo_bytes)
         logo.thumbnail((180, 180))
+        card.paste(logo, (30, 30))
 
-        card.paste(
-            logo,
-            (30, 30)
-        )
+    # Student photo
+    student_img = Image.open(photo_bytes)
+    student_img = student_img.resize((220, 260))
+    card.paste(student_img, (40, 220))
 
-    student = Image.open(photo_path)
+    # QR code
+    qr = qrcode.make(student_number)
+    qr_bytes = BytesIO()
+    qr.save(qr_bytes, format="PNG")
+    qr_bytes.seek(0)
+    qr_img = Image.open(qr_bytes)
+    qr_img = qr_img.resize((180, 180))
+    card.paste(qr_img, (680, 330))
 
-    student = student.resize(
-        (220, 260)
-    )
+    # Draw school name
+    draw.text((300, 80), school_name, fill="black", font=font_big)
+    draw.text((300, 180), f"Name: {name}", fill="black", font=font_small)
+    draw.text((300, 240), f"ID: {student_number}", fill="black", font=font_small)
 
-    card.paste(
-        student,
-        (40, 220)
-    )
-
-    qr = Image.open(qr_path)
-
-    qr = qr.resize(
-        (180, 180)
-    )
-
-    card.paste(
-        qr,
-        (680, 330)
-    )
-
-    draw.text(
-        (300, 80),
-        "ALBARMAWI PRIVATE SCHOOL",
-        fill="black",
-        font=font_big
-    )
-
-    draw.text(
-        (300, 180),
-        f"Name : {name}",
-        fill="black",
-        font=font_small
-    )
-
-    draw.text(
-        (300, 240),
-        f"ID : {student_number}",
-        fill="black",
-        font=font_small
-    )
-
-    output = f"cards/{student_number}.png"
-
-    card.save(output)
-
+    # Save card to BytesIO
+    output = BytesIO()
+    card.save(output, format="PNG")
+    output.seek(0)
     return output
