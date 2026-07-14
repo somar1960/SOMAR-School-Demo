@@ -149,13 +149,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-        approve_student(
-            student_id,
-            student_number
-        )
+student = get_student(student_id)
 
+approve_student(
+    student_id,
+    student_number
+)
 
-        student = get_student(student_id)
+card_path = create_student_card(
+    name=student[2],
+    student_number=student_number,
+    photo_path=student[3],
+    logo_path="logo.png"
+)
 
 
         await query.edit_message_text(
