@@ -93,7 +93,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
             # تحضير البطاقة
-            photo_file = await context.bot.get_file(student['photo_file_id'])
+            photo_file = await student_bot.get_file(student['photo_file_id'])
             photo_bytes = BytesIO()
             await photo_file.download_to_memory(photo_bytes)
             photo_bytes.seek(0)
