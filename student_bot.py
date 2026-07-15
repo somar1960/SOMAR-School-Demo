@@ -129,7 +129,7 @@ async def confirm_registration(update: Update, context: ContextTypes.DEFAULT_TYP
     telegram_id = update.effective_user.id
     text = update.message.text.strip()
 
-    if text == "✅ تأكيد" or text.lower() == "تأكيد":
+    if "تأكيد" in text or "تاكيد" in text:
         user_data = registration_data.get(telegram_id)
         if not user_data:
             await update.message.reply_text("⚠️ حدث خطأ. الرجاء البدء من جديد باستخدام /start")
