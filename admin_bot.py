@@ -1,16 +1,14 @@
 import logging
 from io import BytesIO
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Bot
 from telegram.ext import (
     Application,
     CommandHandler,
-    MessageHandler,
     CallbackQueryHandler,
     ContextTypes,
-    filters,
 )
 from telegram.constants import ParseMode
-from config import ADMIN_BOT_TOKEN, ADMIN_CHAT_IDS
+from config import ADMIN_BOT_TOKEN, STUDENT_BOT_TOKEN, ADMIN_CHAT_IDS
 from database import get_pending_students, get_student, approve_student, reject_student
 from utils.id_card import create_student_card
 
@@ -23,14 +21,13 @@ logger = logging.getLogger(__name__)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id not in ADMIN_CHAT_IDS:
-        await update.message.reply_text("❌ ليس لديك صلاحية الدخول إلى لوحة الإدارة.")
+        await update.message.reply_text("❌ ليس لديك صلاحية.")
         return
 
     await update.message.reply_text(
         "🏫 *SOMAR School Admin*\n\n"
-        "مرحبًا مدير المدرسة 👋\n\n"
-        "استخدم القائمة لمراجعة الطلبات:\n"
-        "👨‍🎓 /registrations - عرض طلبات التسجيل المعلقة",
+        "الأوامر:\n"
+        "/registrations - طلبات التسجيل",
         parse_mode=ParseMode.MARKDOWN
     )
 
@@ -41,7 +38,7 @@ async def registrations(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     students = get_pending_students()
     if not students:
-        await update.message.reply_text("✅ لا توجد طلبات تسجيل جديدة.")
+        await update.message.reply_text("✅ لا توجد طلبات جديدة.")
         return
 
     for student in students:
@@ -55,12 +52,10 @@ async def registrations(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption = (
             "📄 *طلب تسجيل جديد*\n\n"
             f"👤 *الاسم:* {student['full_name']}\n"
-            f"🆔 *Telegram ID:* `{student['telegram_id']}`\n"
-            f"📅 *تاريخ التسجيل:* {student['created_at']}"
+            f"🆔 *Telegram ID:* `{student['telegram_id']}`"
         )
 
         try:
-            # Send photo directly using file_id from database
             await update.message.reply_photo(
                 photo=student['photo_file_id'],
                 caption=caption,
@@ -68,17 +63,16 @@ async def registrations(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode=ParseMode.MARKDOWN
             )
         except Exception as e:
-            logger.error(f"Error sending photo: {e}")
-            await update.message.reply_text(
-                caption + "\n\n⚠️ تعذر عرض الصورة",
-                reply_markup=keyboard,
-                parse_mode=ParseMode.MARKDOWN
-            )
+            logger.error(f"Error: {e}")
+            await update.message.reply_text(caption, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
+
+    # استخدام بوت الطالب للمراسلة
+    student_bot = Bot(token=STUDENT_BOT_TOKEN)
 
     if data.startswith("approve_"):
         student_id = int(data.replace("approve_", ""))
@@ -87,39 +81,30 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text("⚠️ الطالب غير موجود.")
             return
 
-        # Approve in DB
         approved = approve_student(student_id)
         student_number = approved['student_number']
 
-        # Notify student
         try:
-            await context.bot.send_message(
+            # إشعار القبول
+            await student_bot.send_message(
                 chat_id=student['telegram_id'],
-                text=(
-                    "🎉 *تهانينا! تم قبول تسجيلك*\n\n"
-                    f"👤 الاسم: *{student['full_name']}*\n"
-                    f"🔢 رقم الطالب: `{student_number}`\n\n"
-                    "📱 *البطاقة المدرسية جاري إعدادها...*"
-                ),
+                text=f"🎉 *تم قبولك!*\n\n👤 {student['full_name']}\n🔢 رقمك: `{student_number}`",
                 parse_mode=ParseMode.MARKDOWN
             )
 
-            # Generate ID card
-            # Load student photo from Telegram using file_id
+            # تحضير البطاقة
             photo_file = await context.bot.get_file(student['photo_file_id'])
             photo_bytes = BytesIO()
             await photo_file.download_to_memory(photo_bytes)
             photo_bytes.seek(0)
 
-            # Load logo (optional: you can keep it local or also from Telegram)
             logo_bytes = None
             try:
                 with open("logo.png", "rb") as f:
                     logo_bytes = BytesIO(f.read())
-            except Exception:
+            except:
                 pass
 
-            # Create card in memory
             card_image = create_student_card(
                 name=student['full_name'],
                 student_number=student_number,
@@ -128,37 +113,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 school_name="SOMAR School"
             )
 
-            # Send card
-            await context.bot.send_photo(
+            # إرسال البطاقة
+            await student_bot.send_photo(
                 chat_id=student['telegram_id'],
                 photo=card_image,
-                caption=(
-                    "🪪 *بطاقتك المدرسية*\n\n"
-                    f"🏫 SOMAR School\n"
-                    f"👤 {student['full_name']}\n"
-                    f"🔢 `{student_number}`"
-                ),
+                caption=f"🪪 *بطاقتك المدرسية*\n\n👤 {student['full_name']}\n🔢 `{student_number}`",
                 parse_mode=ParseMode.MARKDOWN
             )
 
-        except Exception as e:
-            logger.error(f"Failed to send approval to student: {e}")
-            await query.edit_message_text(
-                f"✅ تم قبول الطالب {student['full_name']}\n"
-                f"🆔 رقم الطالب: {student_number}\n\n"
-                "⚠️ لكن تعذر إرسال الإشعار للطالب."
-            )
-            return
+            await query.edit_message_text(f"✅ تم قبول {student['full_name']}\n🆔 {student_number}")
 
-        await query.edit_message_text(
-            text=(
-                f"✅ *تم قبول الطالب*\n\n"
-                f"👤 {student['full_name']}\n"
-                f"🆔 `{student_number}`\n"
-                f"📱 تم إرسال البطاقة للطالب"
-            ),
-            parse_mode=ParseMode.MARKDOWN
-        )
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            await query.edit_message_text(f"✅ تم القبول ولكن تعذر إرسال الإشعار للطالب.")
 
     elif data.startswith("reject_"):
         student_id = int(data.replace("reject_", ""))
@@ -169,35 +136,25 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         reject_student(student_id)
 
-        # Notify student
         try:
-            await context.bot.send_message(
+            await student_bot.send_message(
                 chat_id=student['telegram_id'],
-                text=(
-                    "❌ *نأسف لإعلامك*\n\n"
-                    f"عزيزي/عزيزتي {student['full_name']}،\n\n"
-                    "بعد مراجعة طلب تسجيلك، لم يتم قبوله.\n\n"
-                    "للتواصل مع الإدارة: @SOMAR_Admin"
-                ),
+                text=f"❌ *نأسف*\n\nعزيزي {student['full_name']}،\nطلبك لم يتم قبوله.\nراجع المدرسة للاستفسار.",
                 parse_mode=ParseMode.MARKDOWN
             )
         except Exception as e:
-            logger.error(f"Failed to send rejection to student: {e}")
+            logger.error(f"Error: {e}")
 
-        await query.edit_message_text(
-            text=f"❌ تم رفض طلب {student['full_name']}",
-            parse_mode=ParseMode.MARKDOWN
-        )
+        await query.edit_message_text(f"❌ تم رفض {student['full_name']}")
 
 def main():
     application = Application.builder().token(ADMIN_BOT_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("registrations", registrations))
-    application.add_handler(MessageHandler(filters.Regex("^👨‍🎓 طلبات التسجيل$"), registrations))
     application.add_handler(CallbackQueryHandler(button_handler))
 
-    logger.info("Admin bot is starting...")
+    logger.info("Admin bot started...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
