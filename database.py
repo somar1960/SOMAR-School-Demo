@@ -10,6 +10,9 @@ def connect():
 def create_table():
     with connect() as conn:
         with conn.cursor() as cur:
+            # حذف الجدول القديم - احذف هذا السطر بعد أول تشغيل ناجح
+            cur.execute("DROP TABLE IF EXISTS students")
+            
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS students (
                     id SERIAL PRIMARY KEY,
